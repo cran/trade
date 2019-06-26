@@ -5,10 +5,11 @@
 \title{quota Simulation With A Bertrand Pricing Game}
 \usage{
 bertrand_quota(demand = c("logit"), prices, quantities, margins, owner,
-  mktElast = NA_real_, diversions, quotaPre = rep(Inf, length(quantities)),
-  quotaPost, priceOutside = ifelse(demand == "logit", 0, 1), priceStart,
-  isMax = FALSE, parmStart, control.slopes, control.equ,
-  labels = paste("Prod", 1:length(quantities), sep = ""), ...)
+  mktElast = NA_real_, diversions, quotaPre = rep(Inf,
+  length(quantities)), quotaPost, priceOutside = ifelse(demand ==
+  "logit", 0, 1), priceStart, isMax = FALSE, parmStart, control.slopes,
+  control.equ, labels = paste("Prod", 1:length(quantities), sep = ""),
+  ...)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
@@ -65,6 +66,7 @@ effects of a quota under the assumption that the firms are playing a
 simultaneous price setting game.
 }
 \examples{
+\donttest{
 ## Calibration and simulation results from a 80\% quota on non-US beers "OTHER-LITE"
 ## and "OTHER-REG"
 ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -87,6 +89,7 @@ result.logit <- bertrand_quota(demand = "logit",prices=price,quantities=quantiti
 
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
+}
 }
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,

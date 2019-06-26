@@ -5,12 +5,13 @@
 \alias{Tariff-classes}
 \alias{TariffCournot-class}
 \alias{TariffLogit-class}
+\alias{TariffMonComLogit-class}
 \alias{TariffCES-class}
 \alias{TariffAIDS-class}
 \alias{TariffBertrand-class}
 \title{S4 classes to model tariffs}
 \description{
-Extend classes from the \code{\link{antitrust}} package to accomodate tariffs.
+Extend classes from the \pkg{antitrust} package to accomodate tariffs.
 }
 \section{Slots}{
 

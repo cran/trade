@@ -7,9 +7,9 @@
 bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
   margins, owner, mktElast = NA_real_, diversions, tariffPre = rep(0,
   length(quantities)), tariffPost = rep(0, length(quantities)),
-  priceOutside = ifelse(demand == "logit", 0, 1), priceStart, isMax = FALSE,
-  parmStart, control.slopes, control.equ, labels = paste("Prod",
-  1:length(quantities), sep = ""), ...)
+  priceOutside = ifelse(demand == "logit", 0, 1), priceStart,
+  isMax = FALSE, parmStart, control.slopes, control.equ,
+  labels = paste("Prod", 1:length(quantities), sep = ""), ...)
 }
 \arguments{
 \item{demand}{A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.}
@@ -20,7 +20,7 @@ bertrand_tariff(demand = c("logit", "ces", "aids"), prices, quantities,
 
 \item{margins}{A length k vector of product margins. All margins must be either be between 0 and 1, or NA.}
 
-\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.}
+\item{owner}{EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.}
 
 \item{mktElast}{A negative number equal to the industry pre-merger price elasticity. Default is NA .}
 
@@ -66,6 +66,7 @@ effects of an \emph{ad valorem} tariff under the assumption that the firms are p
 simultaneous price setting game.
 }
 \examples{
+\donttest{
 ## Calibration and simulation results from a 10\% tariff on non-US beers "OTHER-LITE"
 ## and "OTHER-REG"
 ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -90,7 +91,11 @@ result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantit
 print(result.logit)           # return predicted price change
 summary(result.logit)         # summarize merger simulation
 }
+}
 \references{
 Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
+}
+\seealso{
+\code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 }

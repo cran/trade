@@ -6,7 +6,7 @@
 #' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
 #' @param quantities A length k vector of product quantities.
 #' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
-#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the merger OR a k x k matrix of pre-merger ownership shares.
+#' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
@@ -34,12 +34,13 @@
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
 #' simultaneous price setting game.
 #'
-#'
+#' @seealso \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
 #' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
+#' \donttest{
 #' ## Calibration and simulation results from a 10% tariff on non-US beers "OTHER-LITE"
 #' ## and "OTHER-REG"
 #' ## Source: Epstein/Rubenfeld 2004, pg 80
@@ -63,6 +64,7 @@
 #'
 #' print(result.logit)           # return predicted price change
 #' summary(result.logit)         # summarize merger simulation
+#' }
 #' @include ps-methods.R summary-methods.R
 #' @export
 
@@ -91,6 +93,7 @@ demand <- match.arg(demand)
 nprods <- length(quantities)
 
 insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
+
 
 subset= rep(TRUE,nprods)
 
@@ -155,7 +158,21 @@ else if (demand %in% c("logit","ces")){
     else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
     }
   if(missing(priceStart)) priceStart <- prices
-}
+
+
+  if(demand == "logit" &&  missing(diversions)){
+    diversions <- tcrossprod(1/(1-shares_quantity),shares_quantity)
+    diag(diversions) <- -1
+
+  }
+
+  else if(demand == "ces" &&  missing(diversions)){
+    diversions <- tcrossprod(1/(1-shares_revenue),shares_revenue)
+    diag(diversions) <- -1
+
+
+  }
+  }
 
 
 
@@ -181,6 +198,7 @@ result <-   switch(demand,
                      subset=subset,
                      priceOutside=priceOutside,
                      priceStart=priceStart,
+                     diversion = diversions,
                      shareInside= sum(shares_quantity),
                      parmsStart=parmStart,
                      tariffPre=tariffPre,
@@ -197,6 +215,7 @@ result <-   switch(demand,
                    subset=subset,
                    priceOutside=priceOutside,
                    priceStart=priceStart,
+                   diversion = diversions,
                    shareInside=sum(shares_revenue),
                    parmsStart=parmStart,
                    insideSize =insideSize,
