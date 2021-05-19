@@ -1,11 +1,11 @@
-#'Tariff Simulation With A Bertrand Pricing Game
+#'Tariff Simulation With A Second Score Procurement Auction Game
 #'
-#' Simulate the effect of tariffs when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
+#' Simulate the effect of tariffs when firms play a second score procurement auction game and consumer demand is Logit.
 #'
-#' @param demand A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.
-#' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
+#' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
+#' @param prices  A length k vector product prices.
 #' @param quantities A length k vector of product quantities.
-#' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
+#' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
@@ -16,8 +16,6 @@
 #' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
-#' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
-#' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.
@@ -28,15 +26,15 @@
 #' Let k denote the number of products produced by all firms.
 #' Using price, and quantity, information for all products
 #'in each market, as well as margin information for at least
-#' one products in each market, \code{bertrand_tariff} is able to
-#' recover the slopes and intercepts of either a Logit, CES, or AIDS demand
+#' one products in each market, \code{auction2ndtariff} is able to
+#' recover the slopes and intercepts of a Logit, CES, demand
 #' system. These parameters are then used to simulate the price
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
-#' simultaneous price setting game.
+#' 2nd score auction.
 #'
-#' @seealso \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
+#' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
-#' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
+#' @return \code{auction2ndtariff} returns an instance of class \code{\linkS4class{Tariff2ndLogit}}
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
@@ -49,7 +47,8 @@
 #' owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
 #' price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
 #' quantities   <- c(.066,.172,.253,.187,.099,.223)*100
-#' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769)
+#' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
+#' margins <- margins*price # dollar margins
 #' tariff <- c(0,0,0,0,.1,.1)
 #'
 #' names(price) <-
@@ -58,28 +57,26 @@
 #'  prodNames
 #'
 #'
-#' result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,
+#' result.2nd <- auction2nd_tariff(demand = "logit",prices=price,quantities=quantities,
 #'                                 margins = margins,owner=owner,
 #'                                  tariffPost = tariff, labels=prodNames)
 #'
-#' print(result.logit)           # return predicted price change
-#' summary(result.logit)         # summarize merger simulation
+#' print(result.2nd)           # return predicted price change
+#' summary(result.2nd)         # summarize merger simulation
 #' }
 #' @include ps-methods.R summary-methods.R
 #' @export
 
 
-bertrand_tariff <- function(
-  demand = c("logit","ces","aids"),
+auction2nd_tariff <- function(
+  demand = c("logit"),
   prices,quantities,margins,
   owner=NULL,
   mktElast = NA_real_,
   diversions,
   tariffPre=rep(0,length(quantities)),
   tariffPost=rep(0,length(quantities)),
-  priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
-  isMax=FALSE,
   parmStart,
   control.slopes,
   control.equ,
@@ -108,7 +105,7 @@ if(is.null(owner)){
 }
 
 
-else if(!is.matrix(owner)){
+if(!is.matrix(owner)){
 
   owner <- factor(owner, levels = unique(owner))
   owner = model.matrix(~-1+owner)
@@ -118,9 +115,8 @@ else if(!is.matrix(owner)){
 
 }
 
+ownerPre <- ownerPost <- owner
 
-ownerPost <- owner*(1-tariffPost)
-ownerPre <- owner*(1-tariffPre)
 
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
@@ -180,23 +176,16 @@ else if (demand %in% c("logit","ces")){
 
 
 result <-   switch(demand,
-         aids=new("TariffAIDS",shares=shares_revenue,mcDelta=mcDelta,subset=subset,
-                  margins=margins, prices=prices, quantities=shares_revenue,  mktElast = mktElast,
-                  insideSize = insideSize,
-                  ownerPre=ownerPre,ownerPost=ownerPost, parmStart=parmStart,
-                  diversion=diversions,
-                  tariffPre=tariffPre,
-                  tariffPost=tariffPost,
-                  priceStart=priceStart,labels=labels),
 
-         logit=  new("TariffLogit",prices=prices, shares=shares_quantity,
+
+         logit=  new("Tariff2ndLogit",prices=prices, shares=shares_quantity,
                      margins=margins,
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
                      mktElast = mktElast,
                      mcDelta=mcDelta,
                      subset=subset,
-                     priceOutside=priceOutside,
+                     priceOutside=0,
                      priceStart=priceStart,
                      diversion = diversions,
                      shareInside= sum(shares_quantity),
@@ -204,24 +193,8 @@ result <-   switch(demand,
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,
-                     labels=labels),
+                     labels=labels)
 
-         ces = new("TariffCES",prices=prices, shares=shares_revenue,
-                   margins=margins,
-                   ownerPre=ownerPre,
-                   ownerPost=ownerPost,
-                   mktElast = mktElast,
-                   mcDelta=mcDelta,
-                   subset=subset,
-                   priceOutside=priceOutside,
-                   priceStart=priceStart,
-                   diversion = diversions,
-                   shareInside=sum(shares_revenue),
-                   parmsStart=parmStart,
-                   insideSize =insideSize,
-                   tariffPre=tariffPre,
-                   tariffPost=tariffPost,
-                   labels=labels)
   )
 
 
@@ -245,21 +218,18 @@ result@ownerPost <- ownerToMatrix(result,FALSE)
 ## Calculate Demand Slope Coefficients
 result <- calcSlopes(result)
 
-## Solve Non-Linear System for Price Changes (AIDS only)
-if (demand == "aids"){
-result@priceDelta <- calcPriceDelta(result,isMax=isMax,subset=subset,...)
-}
-
-
 ## Calculate marginal cost
 result@mcPre <-  calcMC(result,TRUE)
+
+result@mcDelta <- result@mcPre*mcDelta
+
 result@mcPost <- calcMC(result,FALSE)
 
 
 
 ## Solve Non-Linear System for Price Changes
-result@pricePre  <- calcPrices(result,preMerger=TRUE,isMax=isMax,...)
-result@pricePost <- calcPrices(result,preMerger=FALSE,isMax=isMax,subset=subset,...)
+result@pricePre  <- calcPrices(result,preMerger=TRUE)
+result@pricePost <- calcPrices(result,preMerger=FALSE)
 
 return(result)
 

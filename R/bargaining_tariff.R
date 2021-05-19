@@ -1,23 +1,34 @@
-#'Tariff Simulation With A Bertrand Pricing Game
+#'Tariff Simulation With A Nash Bargaining Game
 #'
-#' Simulate the effect of tariffs when firms play a Bertrand pricing game and consumer demand is either Logit, CES, or AIDS
+#' Simulate the effect of tariffs when firms play a Nash Bargaining game and consumer demand is Logit.
 #'
-#' @param demand A character vector indicating which demand system to use. Currently allows logit (default), ces, or aids.
-#' @param prices  A length k vector product prices. Default is missing, in which case demand intercepts are not calibrated.
-#' @param quantities A length k vector of product quantities.
-#' @param margins A length k vector of product margins. All margins must be either be between 0 and 1, or NA.
+#' @param demand A character vector indicating which demand system to use. Currently allows logit (default).
+#' @param prices  A length k vector product prices.
+#' @param shares A length k vector of product shares. Values must be between 0 and 1.
+#' @param margins A length k vector of product margins. All margins must be in \strong{levels} (not w.r.t to price), or NA.
 #' @param owner EITHER a vector of length k whose values indicate which firm produced a product before the tariff OR a k x k matrix of pre-merger ownership shares.
 #' @param diversions  A k x k matrix of diversion ratios with diagonal elements equal to -1. Default is missing, in which case diversion according to revenue share is assumed.
 #' @param mktElast A negative number equal to the industry pre-merger price elasticity. Default is NA .
+#' @param insideSize An integer equal to total pre-merger units sold.
+#' If shares sum to one, this also equals the size of the market.
 #' @param tariffPre  A vector of length k where each element equals the \strong{current} \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
 #' @param tariffPost  A vector of length k where each element equals the \strong{new}  \emph{ad valorem} tariff
 #' (expressed as a proportion of the consumer price) imposed on each product. Default is 0, which assumes no tariff.
-#' @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
+#' @param bargpowerPre A length k vector of pre-tariff bargaining power parameters. Values
+#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
+#' though must be calibrated from additional margin and share data. Default is 0.5.
+#' @param bargpowerPost A length k vector of post-tariff bargaining power parameters. Values
+#' must be between 0 (sellers have the power) and 1 (buyers the power). NA values are allowed,
+#' though must be calibrated from additional margin and share data. Default is \sQuote{bargpowerPre}.
+#' @param normIndex An integer equalling the index (position) of the
+#' inside product whose mean valuation will be normalized to 1. Default
+#' is 1, unless \sQuote{shares} sum to less than 1, in which case the default is
+#' NA and an outside good is assumed to exist.
+# @param parmStart \code{aids} only. A vector of length 2 whose elements equal to an initial guess for each "known" element of the diagonal of the demand matrix and the market elasticity.
 #' @param priceStart For aids, a vector of length k who elements equal to an initial guess of the proportional change in price caused by the merger.
 #'  The default is to draw k random elements from a [0,1] uniform distribution. For ces and logit, the default is prices.
 #' @param priceOutside price of the outside good. Equals 0 for logit and 1 for ces. Not used for aids.
-#' @param isMax  If TRUE, checks to see whether computed price equilibrium locally maximizes firm profits and returns a warning if not. Default is FALSE.
 #' @param control.slopes A list of  \code{\link{optim}}  control parameters passed to the calibration routine optimizer (typically the \code{calcSlopes} method).
 #' @param control.equ A list of  \code{\link[BB]{BBsolve}} control parameters passed to the non-linear equation solver (typically the \code{calcPrices} method).
 #' @param labels A k-length vector of labels.
@@ -28,15 +39,15 @@
 #' Let k denote the number of products produced by all firms.
 #' Using price, and quantity, information for all products
 #'in each market, as well as margin information for at least
-#' one products in each market, \code{bertrand_tariff} is able to
-#' recover the slopes and intercepts of either a Logit, CES, or AIDS demand
+#' one products in each market, \code{bargaining_tariff} is able to
+#' recover the slopes and intercepts of a Logit  demand
 #' system. These parameters are then used to simulate the price
 #' effects of an \emph{ad valorem} tariff under the assumption that the firms are playing a
-#' simultaneous price setting game.
+#' Nash Bargaining game.
 #'
-#' @seealso \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
+#' @seealso \code{\link{bertrand_tariff}} to simulate the effects of a tariff under a Bertrand pricing game and \code{\link{monopolistic_competition_tariff}} to simulate the effects of a tariff under monopolistic competition.
 #'
-#' @return \code{bertrand_tariff} returns an instance of class \code{\linkS4class{TariffLogit}}, \code{\linkS4class{TariffCES}}, or \code{\linkS4class{TariffAIDS}}, depending upon the value of the ``demand'' argument.
+#' @return \code{bargaining_tariff} returns an instance of class \code{\linkS4class{TariffBargainingLogit}}
 #' @references Simon P. Anderson, Andre de Palma, Brent Kreider, Tax incidence in differentiated product oligopoly,
 #' Journal of Public Economics, Volume 81, Issue 2, 2001, Pages 173-192.
 #' @examples
@@ -48,51 +59,53 @@
 #' prodNames <- c("BUD","OLD STYLE","MILLER","MILLER-LITE","OTHER-LITE","OTHER-REG")
 #' owner <-c("BUD","OLD STYLE","MILLER","MILLER","OTHER-LITE","OTHER-REG")
 #' price    <- c(.0441,.0328,.0409,.0396,.0387,.0497)
-#' quantities   <- c(.066,.172,.253,.187,.099,.223)*100
-#' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769)
+#' shares   <- c(.066,.172,.253,.187,.099,.223)
+#' margins <- c(.3830,.5515,.5421,.5557,.4453,.3769) # margins in terms of price
 #' tariff <- c(0,0,0,0,.1,.1)
 #'
 #' names(price) <-
-#'  names(quantities) <-
+#'  names(shares) <-
 #'  names(margins) <-
 #'  prodNames
 #'
 #'
-#' result.logit <- bertrand_tariff(demand = "logit",prices=price,quantities=quantities,
+#' result.barg <- bargaining_tariff(demand = "logit",prices=price,shares=shares,
 #'                                 margins = margins,owner=owner,
 #'                                  tariffPost = tariff, labels=prodNames)
 #'
-#' print(result.logit)           # return predicted price change
-#' summary(result.logit)         # summarize merger simulation
+#' print(result.barg)           # return predicted price change
+#' summary(result.barg)         # summarize merger simulation
 #' }
 #' @include ps-methods.R summary-methods.R
 #' @export
 
 
-bertrand_tariff <- function(
-  demand = c("logit","ces","aids"),
-  prices,quantities,margins,
+bargaining_tariff <- function(
+  demand = c("logit"),
+  prices,shares,margins,
   owner=NULL,
   mktElast = NA_real_,
+  insideSize = NA_real_,
   diversions,
-  tariffPre=rep(0,length(quantities)),
-  tariffPost=rep(0,length(quantities)),
+  tariffPre=rep(0,length(shares)),
+  tariffPost=rep(0,length(shares)),
+  bargpowerPre=rep(0.5,length(prices)),
+  bargpowerPost=bargpowerPre,
+  normIndex=ifelse(isTRUE(all.equal(sum(shares),1,check.names=FALSE)),1, NA),
   priceOutside=ifelse(demand== "logit",0, 1),
   priceStart,
-  isMax=FALSE,
-  parmStart,
   control.slopes,
   control.equ,
-  labels=paste("Prod",1:length(quantities),sep=""),
+  labels=paste("Prod",1:length(shares),sep=""),
   ...){
 
 
 demand <- match.arg(demand)
 
 
-nprods <- length(quantities)
+nprods <- length(shares)
 
-insideSize = ifelse(demand == "logit",sum(quantities,na.rm=TRUE), sum(prices*quantities,na.rm=TRUE))
+#insideSize = ifelse(demand == "logit",sum(shares,na.rm=TRUE), sum(prices*shares,na.rm=TRUE))
 
 
 subset= rep(TRUE,nprods)
@@ -118,13 +131,13 @@ else if(!is.matrix(owner)){
 
 }
 
-
 ownerPost <- owner*(1-tariffPost)
 ownerPre <- owner*(1-tariffPre)
 
+
 mcDelta <- (tariffPost - tariffPre)/(1 - tariffPost)
 
-shares_revenue <- shares_quantity <- quantities/sum(quantities)
+shares_revenue <- shares_quantity <- shares #quantities/sum(quantities)
 
 
 
@@ -134,7 +147,7 @@ if(demand == "aids"){
 
   if(missing(prices)){ prices <- rep(NA_real_,nprods)}
 
-  if(missing(parmStart)) parmStart <- rep(NA_real_,2)
+  #if(missing(parmStart)) parmStart <- rep(NA_real_,2)
 
   if(missing(priceStart)) priceStart <- runif(nprods)
 
@@ -148,15 +161,15 @@ if(demand == "aids"){
 }
 
 else if (demand %in% c("logit","ces")){
-
-  if(missing(parmStart)){
-    parmStart <- rep(.1,2)
-    nm <- which(!is.na(margins))[1]
-    if(demand == "logit"){
-    parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
-    }
-    else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
-    }
+#
+#   if(missing(parmStart)){
+#     parmStart <- rep(.1,2)
+#     nm <- which(!is.na(margins))[1]
+#     if(demand == "logit"){
+#     parmStart[1] <- -1/(margins[nm]*prices[nm]*(1-shares_quantity[nm])) #ballpark alpha for starting values
+#     }
+#     else{parmStart[1] <- 1/(margins[nm]*(1-shares_revenue[nm])) - shares_revenue[nm]/(1-shares_revenue[nm])} #ballpark gamma for starting values
+#     }
   if(missing(priceStart)) priceStart <- prices
 
 
@@ -177,19 +190,12 @@ else if (demand %in% c("logit","ces")){
 
 
 
-
-
 result <-   switch(demand,
-         aids=new("TariffAIDS",shares=shares_revenue,mcDelta=mcDelta,subset=subset,
-                  margins=margins, prices=prices, quantities=shares_revenue,  mktElast = mktElast,
-                  insideSize = insideSize,
-                  ownerPre=ownerPre,ownerPost=ownerPost, parmStart=parmStart,
-                  diversion=diversions,
-                  tariffPre=tariffPre,
-                  tariffPost=tariffPost,
-                  priceStart=priceStart,labels=labels),
 
-         logit=  new("TariffLogit",prices=prices, shares=shares_quantity,
+
+         logit=  new("TariffBargainingLogit",
+                     prices=prices,
+                     shares=shares_quantity,
                      margins=margins,
                      ownerPre=ownerPre,
                      ownerPost=ownerPost,
@@ -200,28 +206,14 @@ result <-   switch(demand,
                      priceStart=priceStart,
                      diversion = diversions,
                      shareInside= sum(shares_quantity),
-                     parmsStart=parmStart,
+                     bargpowerPre=bargpowerPre,
+                     bargpowerPost=bargpowerPost,
+                     normIndex=normIndex,
                      tariffPre=tariffPre,
                      tariffPost=tariffPost,
                      insideSize = insideSize,
-                     labels=labels),
+                     labels=labels)
 
-         ces = new("TariffCES",prices=prices, shares=shares_revenue,
-                   margins=margins,
-                   ownerPre=ownerPre,
-                   ownerPost=ownerPost,
-                   mktElast = mktElast,
-                   mcDelta=mcDelta,
-                   subset=subset,
-                   priceOutside=priceOutside,
-                   priceStart=priceStart,
-                   diversion = diversions,
-                   shareInside=sum(shares_revenue),
-                   parmsStart=parmStart,
-                   insideSize =insideSize,
-                   tariffPre=tariffPre,
-                   tariffPost=tariffPost,
-                   labels=labels)
   )
 
 
@@ -245,21 +237,18 @@ result@ownerPost <- ownerToMatrix(result,FALSE)
 ## Calculate Demand Slope Coefficients
 result <- calcSlopes(result)
 
-## Solve Non-Linear System for Price Changes (AIDS only)
-if (demand == "aids"){
-result@priceDelta <- calcPriceDelta(result,isMax=isMax,subset=subset,...)
-}
-
-
 ## Calculate marginal cost
 result@mcPre <-  calcMC(result,TRUE)
+
+result@mcDelta <- result@mcPre*mcDelta
+
 result@mcPost <- calcMC(result,FALSE)
 
 
 
 ## Solve Non-Linear System for Price Changes
-result@pricePre  <- calcPrices(result,preMerger=TRUE,isMax=isMax,...)
-result@pricePost <- calcPrices(result,preMerger=FALSE,isMax=isMax,subset=subset,...)
+result@pricePre  <- calcPrices(result,preMerger=TRUE)
+result@pricePost <- calcPrices(result,preMerger=FALSE)
 
 return(result)
 

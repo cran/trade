@@ -110,12 +110,13 @@ setMethod(
        #  'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
         'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
         'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
-        'Industry Price Change (%)' = sum(priceDelta * sharesPost/100,na.rm=TRUE),
+        'Industry Price Change (%)' = calcPriceDelta(object, market=TRUE,levels=FALSE)*100,
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
         `Gov't Revenue ($)` = thisgovrev,
-        'Net Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
+        'Net Domestic Harm ($)'= thiscv - thispsdelta[1]  - thisgovrev,
+        'Net Total Harm ($)'= thiscv - thispsdelta[1] - thispsdelta[2] - thisgovrev,
 
         check.names=FALSE
       ))
@@ -276,7 +277,7 @@ setMethod(
       #  'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
         'Domestic Firm Price Change (%)'= sum(priceDelta[!istaxed] * domesticshare, na.rm=TRUE) / sum(domesticshare),
         'Foreign Firm Price Change (%)'= sum(priceDelta[istaxed] * foreignshare, na.rm=TRUE) / sum(foreignshare),
-        'Industry Price Change (%)' = sum(priceDelta * sharesPost/100,na.rm=TRUE),
+        'Industry Price Change (%)' = calcPriceDelta(object, market=TRUE)*100,
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
@@ -413,7 +414,7 @@ setMethod(
       results <- data.frame(
         # 'Current Tariff HHI' = as.integer(round(hhi(object,preMerger=TRUE))),
         # 'HHI Change' = as.integer(round(hhi(object,preMerger=FALSE) -  hhi(object,preMerger=TRUE))),
-        'Industry Price Change (%)' = sum(priceDelta * outPost/sum(outPost),na.rm=TRUE),
+        'Industry Price Change (%)' = calcPriceDelta(object)*100,
         'Consumer Harm ($)' = thiscv,
         'Domestic Firm Benefit ($)' = thispsdelta[1],
         'Foreign Firm Harm ($)' = -thispsdelta[2],
