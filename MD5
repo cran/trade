@@ -1,8 +1,8 @@
-9d8185a8eee8037895c5ece58afb5b51 *DESCRIPTION
+3edffd7017c8e226f233d5baa917c08b *DESCRIPTION
 eb99aa3f211f7d7957314db50ddc9a58 *NAMESPACE
 8d52ab47a254770aecf077e2823fd3ae *R/HypoMonMethods.R
 7635e28fde0905a9779de4213714fc18 *R/QuotaClasses.R
-771e4f49995c18edeed8cc6454ffc93e *R/SimFunctions.R
+de34c34951fc3cdc712bdadd7bf3e730 *R/SimFunctions.R
 bf11d813a2ca4dc36fc8e265ff948e48 *R/TariffClasses.R
 0d2de8d9c6ab5e946341c92d7fb84186 *R/TariffCournot-methods.R
 1b8c72a2dd510d94a6c53e1362bc137a *R/TariffMonComRUM-methods.R
@@ -17,13 +17,13 @@ bf11d813a2ca4dc36fc8e265ff948e48 *R/TariffClasses.R
 41403225e04816ea653888fa545315b2 *R/summary-methods.R
 ff07e62be352c82c35a073da84830487 *R/trade-deprecated.R
 e3f81a61958e987d9e9b3643b47ebdc7 *R/trade_shiny.R
-6b646f2ad2be558d111b7345a2695f1e *build/vignette.rds
-af512915248a595cc532a61d05471047 *inst/doc/Reference.Rmd
-9a77a7b260a92af738191295822e1878 *inst/doc/Reference.html
+60881f0e3eb48ab5045107649ab4bb5b *build/vignette.rds
+e9037e09b4dd9806ffa6802583511533 *inst/doc/Reference.Rmd
+2f339cea950dea5506495a4d72b57542 *inst/doc/Reference.html
 f3dc990bf8cc58b2172c2f487c859e59 *inst/trade_shiny/server.R
 6fc0c96a7338fceffea80519b6a523a5 *inst/trade_shiny/ui.R
 ceea9a71cb4ede4974315d549f7a657a *man/Quota-classes.Rd
-7142e738a8f5dc3d18f513ac821ac34c *man/Sim-Functions.Rd
+1813d17bc559a79f78fda1cbe99f6c30 *man/Sim-Functions.Rd
 7c27af776951845a2eab032bd93b2c70 *man/Tariff-classes.Rd
 f5a726d37f8292e2d820761df7eb6655 *man/TariffCournot-methods.Rd
 ed344aae097938d47e52ce120b493af2 *man/TariffMonComRUM-methods.Rd
@@ -39,5 +39,5 @@ db569da9ac76d1ff957571b12554b497 *man/monopolistic_competition_tariff.Rd
 109862a349a92d9334f097e7ffd8e0ed *man/summary-methods.Rd
 8f25cd81032fcccadcbef55115860aab *man/trade-deprecated.Rd
 f1e5990b749c65bbe8f836cf5cdced34 *man/trade_shiny-deprecated.Rd
-af512915248a595cc532a61d05471047 *vignettes/Reference.Rmd
+e9037e09b4dd9806ffa6802583511533 *vignettes/Reference.Rmd
 87a230fffcbc4482a7658167e9e47c88 *vignettes/tradebib.bib
